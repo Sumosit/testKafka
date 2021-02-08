@@ -1,6 +1,8 @@
 package com.example.kafka.test.Service;
 
 import com.example.kafka.test.Curs;
+import com.example.kafka.test.CursJsonStorage;
+import com.example.kafka.test.Repository.CursJsonStorageRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import org.apache.commons.logging.Log;
@@ -10,9 +12,13 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -29,45 +35,51 @@ public class TestService {
     @Autowired
     private KafkaTemplate<Object, String> kafkaTemplate;
 
+    @Autowired
+    private CursJsonStorageRepository cursJsonStorageRepository;
+
+    @Cacheable(value = "cursJsonStorage", key = "#id")
+    public CursJsonStorage getCursJsonStorage(Long cursId) {
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        CursJsonStorage cursJsonStorage = cursJsonStorageRepository.findById(cursId).orElseThrow(RuntimeException::new);
+        logger.info(cursJsonStorage);
+        return cursJsonStorage;
+    }
+
+    public CursJsonStorage createCursJsonStorage(CursJsonStorage cursJsonStorage) {
+        return cursJsonStorageRepository.save(cursJsonStorage);
+    }
+
     public void run(String id) throws Exception {
         String url = "https://bsbnb.nationalbank.kz/?furl=cursFull&switch=rus";
         Document document = Jsoup.connect(url).get();
-        Elements links = document.select("td:lt(4).gen7");
+        Elements amount = document.select("td:lt(4):gt(2).gen7");
+        Elements name = document.select("td:lt(2):gt(0).gen7");
+        Elements currency = document.select("td:lt(3):gt(1).gen7");
 
-        int counter = 0, totalCounter = 0;
-        String total = "";
         List<Curs> cursList = new ArrayList<>();
-        Curs curs = new Curs();
+        Curs curs;
         try {
-            for (Element link : links) {
-                total = total + " " + link.text();
-                counter++;
-                totalCounter++;
-                if (counter == 1) {
-                    curs.setName(link.text());
-                } else if (counter == 2) {
-                    curs.setCurrency(link.text());
-                } else if (counter == 3) {
-                    curs.setAmount(link.text());
-                    cursList.add(curs);
-                    curs = new Curs();
-                    counter = 0;
-                    total = "";
-                }
+            for (int i = 0; i < name.size(); i++) {
+                curs = new Curs(name.get(i).text(),
+                    currency.get(i).text(),
+                    amount.get(i).text());
+                cursList.add(curs);
             }
         } catch (Exception e) {
             this.kafkaTemplate.send(TOPIC, e.getMessage());
         } finally {
-            this.kafkaTemplate.send(TOPIC, cursList.toString());
-            this.kafkaTemplate.send(TOPIC, "Amount of currencies: " + totalCounter / 3);
             ObjectMapper objectMapper = new ObjectMapper();
             objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
-            String arrayToJson = objectMapper.writeValueAsString(cursList);
-            this.kafkaTemplate.send(TOPIC, "Convert List to JSON :" + arrayToJson);
+            String cursToJson = objectMapper.writeValueAsString(cursList);
+            createCursJsonStorage(new CursJsonStorage(null, cursToJson));
+            this.kafkaTemplate.send(TOPIC, "Convert List to JSON :" + cursToJson);
             this.kafkaTemplate.send(TOPIC, java.time.LocalTime.now().toString());
-            counter = 0;
-            totalCounter = 0;
-            total = "";
         }
     }
 }
