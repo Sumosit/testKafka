@@ -1,4 +1,4 @@
-package com.example.kafka.test;
+package com.example.kafka.test.Entity;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

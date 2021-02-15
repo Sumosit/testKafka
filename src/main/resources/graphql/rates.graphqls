@@ -1,0 +1,17 @@
+type Rates {
+id: ID!,
+code: String,
+currency: String,
+amount: String,
+rate: String
+}
+type Query {
+rates(count: Int):[Rates]
+rate(id: ID):Rates
+}
+type Mutation {
+createRates(code: String,
+            currency: String,
+            amount: String,
+            rate: String):Rates
+}

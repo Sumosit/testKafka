@@ -1,4 +1,4 @@
-package com.example.kafka.test;
+package com.example.kafka.test.Entity;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -10,5 +10,5 @@ import lombok.NoArgsConstructor;
 public class Curs {
   private String name;
   private String currency;
-  private String Amount;
+  private String amount;
 }

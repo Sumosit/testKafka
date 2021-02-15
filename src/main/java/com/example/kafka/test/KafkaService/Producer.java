@@ -1,4 +1,4 @@
-package com.example.kafka.test;
+package com.example.kafka.test.KafkaService;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;

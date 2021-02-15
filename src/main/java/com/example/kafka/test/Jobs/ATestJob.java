@@ -1,6 +1,6 @@
 package com.example.kafka.test.Jobs;
 
-import com.example.kafka.test.Service.TestService;
+import com.example.kafka.test.KafkaService.TestService;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
